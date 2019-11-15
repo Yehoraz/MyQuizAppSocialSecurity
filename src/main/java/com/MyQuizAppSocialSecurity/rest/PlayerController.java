@@ -8,7 +8,9 @@ import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +25,7 @@ import com.MyQuizAppSocialSecurity.beans.Player;
 import com.MyQuizAppSocialSecurity.beans.Question;
 import com.MyQuizAppSocialSecurity.beans.Quiz;
 import com.MyQuizAppSocialSecurity.beans.QuizPlayerAnswers;
+import com.MyQuizAppSocialSecurity.securityBeans.User;
 import com.MyQuizAppSocialSecurity.securityBeans.UserRepository;
 
 @RestController
@@ -32,9 +35,6 @@ public class PlayerController {
 	
 	@Autowired
 	private UserRepository userRepository;
-	
-	@Autowired
-	private OAuth2Authentication oAuth2Authentication;
 
 	
 	// need to make sure every ID is what we get from the security!!!! need to use setters to change the player ID in every place!
@@ -50,12 +50,12 @@ public class PlayerController {
 	
 	//should check how to get the userID / principalId
 	@GetMapping("/check")
-	public ResponseEntity<?> getCheck(Principal principal){
-		System.out.println(oAuth2Authentication);
-		System.out.println(oAuth2Authentication.getUserAuthentication());
-		Map<String, Object> details = (Map<String, Object>)oAuth2Authentication.getUserAuthentication();
-		System.out.println(((String)details.get("email")));
-		System.out.println(principal);
+	public ResponseEntity<?> getCheck(Authentication authentication){
+		OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
+		Map<String, Object> details = (Map<String, Object>) oAuth2Authentication.getUserAuthentication()
+				.getDetails();
+		User userTestUser = userRepository.findById((String) details.get("email")).orElse(null);
+		System.out.println(userTestUser);
 		return null;
 	}
 

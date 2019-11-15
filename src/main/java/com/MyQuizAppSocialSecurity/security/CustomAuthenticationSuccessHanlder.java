@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.Date;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -22,6 +23,8 @@ import com.MyQuizAppSocialSecurity.enums.Roles;
 import com.MyQuizAppSocialSecurity.securityBeans.User;
 import com.MyQuizAppSocialSecurity.securityBeans.UserRepository;
 
+import javassist.expr.NewArray;
+
 @Component
 public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccessHandler {
 
@@ -36,12 +39,13 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws IOException, ServletException {
+		System.out.println("yayyyyy @@@@@@@@@@@@@@@@@@@@@@@");
 		String token = clientContext.getAccessToken().getValue();
 		OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
 		User user = null;
 		String path = request.getServletPath();
-
 		if (path.equalsIgnoreCase("/login/google")) {
+			System.out.println("google");
 			Map<String, Object> details = (Map<String, Object>) oAuth2Authentication.getUserAuthentication()
 					.getDetails();
 			user = userRepository.findById((String) details.get("email")).orElse(null);
@@ -49,10 +53,14 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				user = new User();
 				user.setCreatedDate(new Date(System.currentTimeMillis()));
 				user.setLastLoginDate(new Date(System.currentTimeMillis()));
-				user.setSocialTypeAndId((Map<String, String>) Collections.emptyMap().put(LoginType.google.name(),
-						(String) details.get("id")));
+				user.setSocialTypeAndId(new HashMap<String, String>(){{put(LoginType.google.name(), (String) details.get("id"));}});
 				user.setUsername((String) details.get("email"));
-				user.setRoles(Arrays.asList(Roles.PLAYER));
+				if(user.getUsername().equalsIgnoreCase("yehoraz3@gmail.com")) {
+					user.setRoles(Arrays.asList(Roles.ADMIN, Roles.PLAYER));
+				}else {
+					user.setRoles(Arrays.asList(Roles.PLAYER));
+				}
+				System.out.println("1");
 				user.setFirstName((String) details.get("given_name"));
 				user.setLastName((String) details.get("family_name"));
 				user.setPictureURL((String) details.get("picture"));
@@ -61,6 +69,7 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				user.setCredentialsNonExpired(true);
 				user.setEnabled(true);
 				user.setUserId(createUserId());
+				System.out.println("2");
 			} else {
 				user.setLastLoginDate(new Date(System.currentTimeMillis()));
 				if ((!user.getSocialTypeAndId().containsKey(LoginType.google.name()))
@@ -76,12 +85,15 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 			// logger!!
 		}
 		if (user != null) {
+			System.out.println("3");
+			System.out.println(user);
 			userRepository.save(user);
-			response.sendRedirect(clientSideBaseURL + "home");
+			System.out.println("all good");
+//			response.sendRedirect(clientSideBaseURL + "home");
 		}else {
+			System.out.println("4");
 			response.sendRedirect(clientSideBaseURL + "/error");
 		}
-
 	}
 
 	private long createUserId() {
