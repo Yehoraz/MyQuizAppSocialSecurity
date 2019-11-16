@@ -32,25 +32,22 @@ public class User {
 	
 	@Id
 	private String username;
-		
-//	private List<String> socialId;
-//	
-//	@Enumerated(EnumType.STRING)
-//	@ElementCollection(targetClass = LoginType.class)
-//	@Column
-//	private List<LoginType> loginType;
 	
+	@Column(unique=true)
 	private long userId;
 	
 	private String firstName;
 	
 	private String lastName;
 	
+	@Column(length=512)
 	private String pictureURL;
 	
 	private Date createdDate;
 	
 	private Date lastLoginDate;
+	
+	private String token;
 	
 	private boolean accountNonExpired;
 	
@@ -63,13 +60,11 @@ public class User {
 	@Enumerated(EnumType.STRING)
 	@ElementCollection(targetClass = Roles.class)
 	@Column
-//	@Transient
 	private List<Roles> roles;
 	
 	@ElementCollection(targetClass = String.class)
 	@MapKeyColumn
 	@Column
-//	@Transient
 	private Map<String, String> socialTypeAndId;
 	
 	public void addRole(Roles role) {

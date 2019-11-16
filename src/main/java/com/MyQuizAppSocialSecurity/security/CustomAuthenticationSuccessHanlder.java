@@ -3,7 +3,6 @@ package com.MyQuizAppSocialSecurity.security;
 import java.io.IOException;
 import java.sql.Date;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,6 +15,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.social.facebook.api.Facebook;
+import org.springframework.social.facebook.api.impl.FacebookTemplate;
 import org.springframework.stereotype.Component;
 
 import com.MyQuizAppSocialSecurity.enums.LoginType;
@@ -23,13 +24,11 @@ import com.MyQuizAppSocialSecurity.enums.Roles;
 import com.MyQuizAppSocialSecurity.securityBeans.User;
 import com.MyQuizAppSocialSecurity.securityBeans.UserRepository;
 
-import javassist.expr.NewArray;
-
 @Component
 public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccessHandler {
 
 	private final String clientSideBaseURL = "http://localhost:4200/";
-	
+
 	@Autowired
 	private UserRepository userRepository;
 
@@ -39,13 +38,11 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws IOException, ServletException {
-		System.out.println("yayyyyy @@@@@@@@@@@@@@@@@@@@@@@");
 		String token = clientContext.getAccessToken().getValue();
 		OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
 		User user = null;
 		String path = request.getServletPath();
 		if (path.equalsIgnoreCase("/login/google")) {
-			System.out.println("google");
 			Map<String, Object> details = (Map<String, Object>) oAuth2Authentication.getUserAuthentication()
 					.getDetails();
 			user = userRepository.findById((String) details.get("email")).orElse(null);
@@ -53,14 +50,17 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				user = new User();
 				user.setCreatedDate(new Date(System.currentTimeMillis()));
 				user.setLastLoginDate(new Date(System.currentTimeMillis()));
-				user.setSocialTypeAndId(new HashMap<String, String>(){{put(LoginType.google.name(), (String) details.get("id"));}});
+				user.setSocialTypeAndId(new HashMap<String, String>() {
+					{
+						put(LoginType.google.name(), (String) details.get("id"));
+					}
+				});
 				user.setUsername((String) details.get("email"));
-				if(user.getUsername().equalsIgnoreCase("yehoraz3@gmail.com")) {
+				if (user.getUsername().equalsIgnoreCase("yehoraz3@gmail.com")) {
 					user.setRoles(Arrays.asList(Roles.ADMIN, Roles.PLAYER));
-				}else {
+				} else {
 					user.setRoles(Arrays.asList(Roles.PLAYER));
 				}
-				System.out.println("1");
 				user.setFirstName((String) details.get("given_name"));
 				user.setLastName((String) details.get("family_name"));
 				user.setPictureURL((String) details.get("picture"));
@@ -68,10 +68,11 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				user.setAccountNonLocked(true);
 				user.setCredentialsNonExpired(true);
 				user.setEnabled(true);
+				user.setToken(token);
 				user.setUserId(createUserId());
-				System.out.println("2");
 			} else {
 				user.setLastLoginDate(new Date(System.currentTimeMillis()));
+				user.setToken(token);
 				if ((!user.getSocialTypeAndId().containsKey(LoginType.google.name()))
 						|| user.getSocialTypeAndId().getOrDefault(LoginType.google.name(), "").length() <= 1) {
 					user.getSocialTypeAndId().put(LoginType.google.name(), (String) details.get("id"));
@@ -79,7 +80,56 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				user.setPictureURL((String) details.get("picture"));
 			}
 		} else if (path.equalsIgnoreCase("/login/facebook")) {
-
+			Facebook facebook = new FacebookTemplate(token);
+			String[] fields = { "id", "email", "first_name", "last_name", "picture" };
+			org.springframework.social.facebook.api.User fProfile2 = facebook.fetchObject("me",
+					org.springframework.social.facebook.api.User.class, fields);
+			Map<String, Object> fProfileDataMap = fProfile2.getExtraData();
+			String picURL = ((Map<String, String>) ((Map<String, Object>) fProfileDataMap.get("picture")).get("data"))
+					.get("url");
+			user = userRepository.findById(fProfile2.getEmail()).orElse(null);
+			if (user == null) {
+				user = new User();
+				user.setCreatedDate(new Date(System.currentTimeMillis()));
+				user.setLastLoginDate(new Date(System.currentTimeMillis()));
+				user.setSocialTypeAndId(new HashMap<String, String>() {
+					{
+						put(LoginType.facebook.name(), (String) fProfile2.getId());
+					}
+				});
+				user.setUsername((String) fProfile2.getEmail());
+				if (user.getUsername().equalsIgnoreCase("yehoraz3@gmail.com")
+						|| user.getUsername().equalsIgnoreCase("yehoraz3@walla.com")) {
+					user.setRoles(Arrays.asList(Roles.ADMIN, Roles.PLAYER));
+				} else {
+					user.setRoles(Arrays.asList(Roles.PLAYER));
+				}
+				user.setFirstName((String) fProfile2.getFirstName());
+				user.setLastName((String) fProfile2.getLastName());
+				if (picURL != null) {
+					user.setPictureURL(picURL);
+				} else {
+					user.setPictureURL("defalut pic URL");
+				}
+				user.setAccountNonExpired(true);
+				user.setAccountNonLocked(true);
+				user.setCredentialsNonExpired(true);
+				user.setEnabled(true);
+				user.setToken(token);
+				user.setUserId(createUserId());
+			} else {
+				user.setToken(token);
+				user.setLastLoginDate(new Date(System.currentTimeMillis()));
+				if ((!user.getSocialTypeAndId().containsKey(LoginType.facebook.name()))
+						|| user.getSocialTypeAndId().getOrDefault(LoginType.facebook.name(), "").length() <= 1) {
+					user.getSocialTypeAndId().put(LoginType.facebook.name(), fProfile2.getId());
+				}
+				if (picURL != null) {
+					user.setPictureURL(picURL);
+				} else {
+					user.setPictureURL("defalut pic URL");
+				}
+			}
 		} else {
 			System.out.println("error in customAuthen");
 			// logger!!
@@ -90,9 +140,10 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 			userRepository.save(user);
 			System.out.println("all good");
 //			response.sendRedirect(clientSideBaseURL + "home");
-		}else {
+		} else {
 			System.out.println("4");
-			response.sendRedirect(clientSideBaseURL + "/error");
+			System.out.println("user null");
+//			response.sendRedirect(clientSideBaseURL + "/error");
 		}
 	}
 
