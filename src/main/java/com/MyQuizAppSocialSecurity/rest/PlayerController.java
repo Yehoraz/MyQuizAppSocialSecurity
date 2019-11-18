@@ -3,17 +3,15 @@ package com.MyQuizAppSocialSecurity.rest;
 import java.io.IOException;
 import java.sql.Date;
 import java.util.List;
-import java.util.Map;
+
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +19,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.RestTemplate;
 import com.MyQuizAppSocialSecurity.beans.Player;
 import com.MyQuizAppSocialSecurity.beans.Question;
@@ -34,14 +31,16 @@ import com.MyQuizAppSocialSecurity.utils.UserUtil;
 
 @RestController
 @RequestMapping("/player/")
+@PropertySource(value = "classpath:info.properties")
 public class PlayerController {
 
-	// need to make sure every ID is what we get from the security!!!! need to use
-	// setters to change the player ID in every place!
-	private final String BASE_QUIZ_URL = "http://localhost:8080";
-	private final String BASE_QUIZ_WEB_URL = "http://localhost:4200";
+	private String BASE_QUIZ_URL;
+	private String BASE_QUIZ_WEB_URL;
 	private ResponseEntity<?> responseEntity;
 	private User user;
+
+	@Autowired
+	private Environment env;
 
 	@Autowired
 	private UserRepository userRepository;
@@ -55,18 +54,15 @@ public class PlayerController {
 	@Autowired
 	private OAuth2ClientContext clientContext;
 
+	@PostConstruct
+	private void setProperties() {
+		BASE_QUIZ_URL = env.getProperty("url.baseQuizURL");
+		BASE_QUIZ_WEB_URL = env.getProperty("url.baseQuizWebURL");
+	}
+
 	// should check how to get the userID / principalId
 	@GetMapping("/check")
 	public String getCheck() {
-		System.out.println("this is check");
-		System.out.println(restTemplate);
-		System.out.println("1");
-		responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/check", String.class);
-		System.out.println(responseEntity.getStatusCodeValue());
-		System.out.println(HttpStatus.OK.value());
-		System.out.println("2");
-		System.out.println(clientContext);
-		System.out.println(clientContext.getAccessToken());
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
 			System.out.println(user);
@@ -88,7 +84,9 @@ public class PlayerController {
 			quiz.setWinnerPlayerScore(0);
 			responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/createQuiz", quiz, String.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
-				user.addRole(Roles.MANAGER);
+				if(!user.getRoles().contains(Roles.MANAGER)) {
+					user.addRole(Roles.MANAGER);
+				}
 				user.removeRole(Roles.PLAYER);
 				userRepository.save(user);
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
@@ -175,7 +173,7 @@ public class PlayerController {
 						question, String.class);
 				if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 					return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-				}else {
+				} else {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong");
 				}
 			} else {
@@ -189,33 +187,43 @@ public class PlayerController {
 	@GetMapping("/getAllQuestions")
 	public ResponseEntity<?> getAllQuestions() {
 		responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getAllQuestions", List.class);
-		if(responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-		}else {
+		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no Quizs");
 		}
 	}
 
 	@GetMapping("/getRandomQuestions/{numberOfRandomQuestions}")
-	public ResponseEntity<?> getRandomQuestions(@PathVariable("numberOfRandomQuestions") short numberOfRandomQuestions) {
-		if(numberOfRandomQuestions > 0 && numberOfRandomQuestions < 1000) {
-			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getRandomQuestions" + "/" + numberOfRandomQuestions, List.class);
+	public ResponseEntity<?> getRandomQuestions(
+			@PathVariable("numberOfRandomQuestions") short numberOfRandomQuestions) {
+		if (numberOfRandomQuestions > 0 && numberOfRandomQuestions < 1000) {
+			responseEntity = restTemplate
+					.getForEntity(BASE_QUIZ_URL + "/getRandomQuestions" + "/" + numberOfRandomQuestions, List.class);
 			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+		}
+	}
+
+	@GetMapping("/getWinner/{quizId}")
+	public ResponseEntity<?> getQuizWinner(@PathVariable long quizId) {
+		if (quizId > 100000000000000000l) {
+			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getWinner" + "/" + quizId,
+					ResponseEntity.class);
+			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+			}
 		}else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 		}
 	}
 
-	@PostMapping("/register")
-	public ResponseEntity<?> addPlayer() {
-		user = UserUtil.getUser(userRepository, clientContext);
-		responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/addPlayer", null, ResponseEntity.class);
-		return null;
-	}
-
 	@RequestMapping("/logoutSuccess")
 	public ResponseEntity<?> logoutSuccess() {
-		return ResponseEntity.ok("logout");
+		return ResponseEntity.ok(null);
 	}
 
 	@RequestMapping("/relog")

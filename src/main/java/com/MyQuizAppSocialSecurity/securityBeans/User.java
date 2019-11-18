@@ -30,6 +30,7 @@ import lombok.NoArgsConstructor;
 @Entity
 public class User {
 	
+	// username is the user email!
 	@Id
 	private String username;
 	

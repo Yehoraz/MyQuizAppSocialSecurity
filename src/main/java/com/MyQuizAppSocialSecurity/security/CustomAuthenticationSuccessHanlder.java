@@ -6,11 +6,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -18,7 +22,9 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.social.facebook.api.Facebook;
 import org.springframework.social.facebook.api.impl.FacebookTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
+import com.MyQuizAppSocialSecurity.beans.Player;
 import com.MyQuizAppSocialSecurity.enums.LoginType;
 import com.MyQuizAppSocialSecurity.enums.Roles;
 import com.MyQuizAppSocialSecurity.securityBeans.User;
@@ -27,13 +33,26 @@ import com.MyQuizAppSocialSecurity.securityBeans.UserRepository;
 @Component
 public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccessHandler {
 
-	private final String clientSideBaseURL = "http://localhost:4200/";
+	private String BASE_QUIZ_URL;
+	private String BASE_QUIZ_WEB_URL;
+
+	@Autowired
+	private Environment env;
 
 	@Autowired
 	private UserRepository userRepository;
 
 	@Autowired
 	private OAuth2ClientContext clientContext;
+
+	@Autowired
+	private RestTemplate restTemplate;
+
+	@PostConstruct
+	private void setProperties() {
+		BASE_QUIZ_URL = env.getProperty("url.baseQuizURL");
+		BASE_QUIZ_WEB_URL = env.getProperty("url.baseQuizWebURL");
+	}
 
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -42,6 +61,7 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 		OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
 		User user = null;
 		String path = request.getServletPath();
+		Player player = new Player();
 		if (path.equalsIgnoreCase("/login/google")) {
 			Map<String, Object> details = (Map<String, Object>) oAuth2Authentication.getUserAuthentication()
 					.getDetails();
@@ -70,6 +90,11 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				user.setEnabled(true);
 				user.setToken(token);
 				user.setUserId(createUserId());
+
+				player.setAge((byte) 0);
+				player.setFirstName(user.getFirstName());
+				player.setLastName(user.getLastName());
+				player.setId(user.getUserId());
 			} else {
 				user.setLastLoginDate(new Date(System.currentTimeMillis()));
 				user.setToken(token);
@@ -117,6 +142,11 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				user.setEnabled(true);
 				user.setToken(token);
 				user.setUserId(createUserId());
+
+				player.setAge((byte) 0);
+				player.setFirstName(user.getFirstName());
+				player.setLastName(user.getLastName());
+				player.setId(user.getUserId());
 			} else {
 				user.setToken(token);
 				user.setLastLoginDate(new Date(System.currentTimeMillis()));
@@ -137,11 +167,17 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 		if (user != null) {
 			System.out.println("3");
 			System.out.println(user);
-			userRepository.save(user);
+			ResponseEntity<?> responseEntity;
+			do {
+				userRepository.save(user);
+				// must create a check method that will set default values if player values are Invalid!!
+				responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/addPlayer", player, String.class);
+				user.setUserId(createUserId());
+				player.setId(user.getUserId());
+			} while (responseEntity.getStatusCodeValue() != HttpStatus.OK.value());
 			System.out.println("all good");
 //			response.sendRedirect(clientSideBaseURL + "home");
 		} else {
-			System.out.println("4");
 			System.out.println("user null");
 //			response.sendRedirect(clientSideBaseURL + "/error");
 		}
