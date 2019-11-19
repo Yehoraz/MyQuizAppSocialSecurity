@@ -6,11 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,8 +26,16 @@ import com.MyQuizAppSocialSecurity.beans.SuggestedQuestion;
 @PropertySource(value = "classpath:info.properties")
 @Lazy
 public class AdminController {
+	//need to check what PUT request return ASAP!!!!!!!!
+	//need to check what PUT request return ASAP!!!!!!!!
+	//need to check what PUT request return ASAP!!!!!!!!
+	//need to check what PUT request return ASAP!!!!!!!!
+	//need to check what PUT request return ASAP!!!!!!!!
+	//need to check what PUT request return ASAP!!!!!!!!
+
 
 	private String BASE_QUIZ_ADMIN_URL;
+	private ResponseEntity<?> responseEntity;
 	
 	@Autowired
 	private Environment env;
@@ -41,11 +51,51 @@ public class AdminController {
 	
 	@PostMapping("/addQuestion")
 	public ResponseEntity<?> addQuestion(@RequestBody Question question) {
-		return restTemplate.postForEntity(BASE_QUIZ_ADMIN_URL + "/addQuestion", question, ResponseEntity.class);
+		if(question != null) {
+			responseEntity = restTemplate.postForEntity(BASE_QUIZ_ADMIN_URL + "/addQuestion", question, String.class);
+			if(responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			}else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+			}
+		}else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+		}
+	}
+	
+	@PutMapping("/updateQuestion")
+	public ResponseEntity<?> updateQuestion(@RequestBody Question question) {
+		if(question != null) {
+			try {
+				restTemplate.put(BASE_QUIZ_ADMIN_URL + "/updateQuestion", question);
+				return ResponseEntity.status(HttpStatus.OK).body("Question updated");
+			} catch (Exception e) {
+				//need to check what PUT request return ASAP!!!!!!!!
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+			}
+		}else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+		}
+	}
+	
+	@DeleteMapping("/removeQuestion/{questionId}")
+	public ResponseEntity<?> removeQuestion(@PathVariable long questionId) {
+		if(questionId >= 0) {
+			try {
+				restTemplate.delete(BASE_QUIZ_ADMIN_URL + "/updateQuestion" + "/" + questionId);
+				return ResponseEntity.status(HttpStatus.OK).body("Question removed");
+			} catch (Exception e) {
+				//need to check what PUT request return ASAP!!!!!!!!
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+			}
+		}else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+		}
 	}
 	
 	@GetMapping("/getSuggestedQuestions")
 	public ResponseEntity<?> getAllSuggestedQuestions(){
+		
 		return restTemplate.getForEntity(BASE_QUIZ_ADMIN_URL + "/getSuggestedQuestions", ResponseEntity.class);
 	}
 	

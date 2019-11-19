@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import com.MyQuizAppSocialSecurity.beans.Player;
 import com.MyQuizAppSocialSecurity.enums.Roles;
 import com.MyQuizAppSocialSecurity.securityBeans.User;
 import com.MyQuizAppSocialSecurity.securityBeans.UserRepository;
@@ -78,7 +76,7 @@ public class QuizManagerController {
 			} catch (Exception e) {
 				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
 			}
-			if(!user.getRoles().contains(Roles.PLAYER)) {
+			if (!user.getRoles().contains(Roles.PLAYER)) {
 				user.addRole(Roles.PLAYER);
 			}
 			user.removeRole(Roles.MANAGER);
@@ -123,12 +121,16 @@ public class QuizManagerController {
 			@PathVariable int answerId, @RequestBody String answerText) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
-			try {
-				restTemplate.put(BASE_QUIZ_URL + "/updateAnswer" + "/" + quizId + "/" + questionId + "/" + answerId
-						+ "/" + user.getUserId(), answerText);
-				return ResponseEntity.status(HttpStatus.OK).body("Answer updated");
-			} catch (Exception e) {
-				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
+			if (answerText.length() > 0) {
+				try {
+					restTemplate.put(BASE_QUIZ_URL + "/updateAnswer" + "/" + quizId + "/" + questionId + "/" + answerId
+							+ "/" + user.getUserId(), answerText);
+					return ResponseEntity.status(HttpStatus.OK).body("Answer updated");
+				} catch (Exception e) {
+					return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
+				}
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
@@ -140,13 +142,16 @@ public class QuizManagerController {
 			@RequestBody String questionText) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
-			try {
-				restTemplate.put(
-						BASE_QUIZ_URL + "/updateQuestion" + "/" + quizId + "/" + questionId + "/" + user.getUserId(),
-						questionText);
-				return ResponseEntity.status(HttpStatus.OK).body("Question updated");
-			} catch (Exception e) {
-				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
+			if (questionText.length() > 0) {
+				try {
+					restTemplate.put(BASE_QUIZ_URL + "/updateQuestion" + "/" + quizId + "/" + questionId + "/"
+							+ user.getUserId(), questionText);
+					return ResponseEntity.status(HttpStatus.OK).body("Question updated");
+				} catch (Exception e) {
+					return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
+				}
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
@@ -158,7 +163,8 @@ public class QuizManagerController {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
 			try {
-				restTemplate.delete(BASE_QUIZ_URL + "/removeQuestion" + "/" + quizId + "/" + questionId + "/" + user.getUserId());
+				restTemplate.delete(
+						BASE_QUIZ_URL + "/removeQuestion" + "/" + quizId + "/" + questionId + "/" + user.getUserId());
 				return ResponseEntity.status(HttpStatus.OK).body("Question removed");
 			} catch (Exception e) {
 				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
@@ -174,7 +180,7 @@ public class QuizManagerController {
 		if (user != null) {
 			try {
 				restTemplate.delete(BASE_QUIZ_URL + "/removeQuiz" + "/" + quizId + "/" + user.getUserId());
-				if(!user.getRoles().contains(Roles.PLAYER)) {
+				if (!user.getRoles().contains(Roles.PLAYER)) {
 					user.addRole(Roles.PLAYER);
 				}
 				user.removeRole(Roles.MANAGER);

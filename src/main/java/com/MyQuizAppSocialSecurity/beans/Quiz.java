@@ -11,9 +11,13 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import com.MyQuizAppSocialSecurity.enums.QuizType;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Quiz {
 
 	private long id;
