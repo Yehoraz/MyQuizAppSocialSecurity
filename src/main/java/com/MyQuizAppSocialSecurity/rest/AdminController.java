@@ -165,7 +165,6 @@ public class AdminController {
 
 	private void restartValues() {
 		responseEntity = null;
-		restTemplate = null;
 	}
 
 }

@@ -63,26 +63,6 @@ public class PlayerController {
 		BASE_QUIZ_URL = env.getProperty("url.baseQuizURL");
 		BASE_QUIZ_WEB_URL = env.getProperty("url.baseQuizWebURL");
 	}
-
-	// should check how to get the userID / principalId
-	@GetMapping("/check")
-	public String getCheck() {
-		user = UserUtil.getUser(userRepository, clientContext);
-		if (user != null) {
-			System.out.println(user);
-			return "good";
-		} else {
-			return "bad";
-		}
-	}
-	
-	@GetMapping("/check3")
-	public String check3() {
-		Player player = new Player(123, "dodo", "dada", (byte)20);
-		responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/addPlayer", player, String.class);
-		System.out.println(responseEntity);
-		return "wow";
-	}
 	
 	@GetMapping("/check2")
 	public String check2() {
