@@ -12,11 +12,13 @@ import lombok.NoArgsConstructor;
 public class Question {
 
 	private long id;
-	
+
 	private String questionText;
-	
+
 	private long correctAnswerId;
-	
+
+	private boolean isApproved;
+
 	private List<Answer> answers;
-	
+
 }
