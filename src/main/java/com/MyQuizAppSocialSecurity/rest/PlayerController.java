@@ -27,6 +27,7 @@ import com.MyQuizAppSocialSecurity.beans.Player;
 import com.MyQuizAppSocialSecurity.beans.Question;
 import com.MyQuizAppSocialSecurity.beans.Quiz;
 import com.MyQuizAppSocialSecurity.beans.QuizPlayerAnswers;
+import com.MyQuizAppSocialSecurity.beans.SuggestedQuestion;
 import com.MyQuizAppSocialSecurity.enums.QuizType;
 import com.MyQuizAppSocialSecurity.enums.Roles;
 import com.MyQuizAppSocialSecurity.securityBeans.User;
@@ -37,6 +38,7 @@ import com.MyQuizAppSocialSecurity.utils.UserUtil;
 @RequestMapping("/player/")
 @PropertySource(value = "classpath:info.properties")
 public class PlayerController {
+	// need to add mongoDB to this project!!!1
 
 	private String BASE_QUIZ_URL;
 	private String BASE_QUIZ_WEB_URL;
@@ -63,25 +65,35 @@ public class PlayerController {
 		BASE_QUIZ_URL = env.getProperty("url.baseQuizURL");
 		BASE_QUIZ_WEB_URL = env.getProperty("url.baseQuizWebURL");
 	}
-	
+
+	@GetMapping("/check3")
+	public void check3() {
+		try {
+			restTemplate.put(BASE_QUIZ_URL + "/helloCheck", null);
+		} catch (Exception e) {
+			System.out.println(e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value()));
+			System.out.println(e.getMessage());
+		}
+	}
+
 	@GetMapping("/check2")
 	public String check2() {
-		Answer answer = new Answer(0,"a", false);
-		Answer answer1 = new Answer(0,"b", false);
-		Answer answer2 = new Answer(0,"c", true);
-		Answer answer3 = new Answer(0,"d", false);
+		Answer answer = new Answer(0, "a", false);
+		Answer answer1 = new Answer(0, "b", false);
+		Answer answer2 = new Answer(0, "c", true);
+		Answer answer3 = new Answer(0, "d", false);
 		List<Answer> answers = new ArrayList<Answer>();
 		answers.add(answer);
 		answers.add(answer1);
 		answers.add(answer2);
 		answers.add(answer3);
-		Question question = new Question(0,"what is it?", 0, false, answers);
-		Question question1 = new Question(0,"what is it1?", 0, false, answers);
-		Question question2 = new Question(0,"what is it2?", 0, false, answers);
-		Question question3 = new Question(0,"what is it3?", 0, false, answers);
-		Question question4 = new Question(0,"what is it4?", 0, false, answers);
-		Question question5 = new Question(0,"what is it5?", 0, false, answers);
-		Question question6 = new Question(0,"what is it6?", 0, false, answers);
+		Question question = new Question(0, "what is it?", 0, false, answers);
+		Question question1 = new Question(0, "what is it1?", 0, false, answers);
+		Question question2 = new Question(0, "what is it2?", 0, false, answers);
+		Question question3 = new Question(0, "what is it3?", 0, false, answers);
+		Question question4 = new Question(0, "what is it4?", 0, false, answers);
+		Question question5 = new Question(0, "what is it5?", 0, false, answers);
+		Question question6 = new Question(0, "what is it6?", 0, false, answers);
 		List<Question> questions = new ArrayList<Question>();
 		questions.add(question);
 		questions.add(question1);
@@ -90,8 +102,9 @@ public class PlayerController {
 		questions.add(question4);
 		questions.add(question5);
 		questions.add(question6);
-		Player player = new Player(123, "dodo", "dada", (byte)20);
-		Quiz quiz = new Quiz(0, "my quiz", 123, QuizType.american, null, 0, new Date(System.currentTimeMillis()), null, null, 1000000000, false, questions, new ArrayList<Player>(), new ArrayList<QuizPlayerAnswers>());
+		Player player = new Player(123, "dodo", "dada", (byte) 20);
+		Quiz quiz = new Quiz(0, "my quiz", 123, QuizType.american, null, 0, new Date(System.currentTimeMillis()), null,
+				null, 1000000000, false, questions, new ArrayList<Player>(), new ArrayList<QuizPlayerAnswers>());
 		responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/createQuiz", quiz, String.class);
 		System.out.println(responseEntity);
 		return "yay";
@@ -109,7 +122,7 @@ public class PlayerController {
 			quiz.setWinnerPlayerScore(0);
 			responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/createQuiz", quiz, String.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
-				if(!user.getRoles().contains(Roles.MANAGER)) {
+				if (!user.getRoles().contains(Roles.MANAGER)) {
 					user.addRole(Roles.MANAGER);
 				}
 				user.removeRole(Roles.PLAYER);
@@ -172,17 +185,26 @@ public class PlayerController {
 		}
 	}
 
-	@PutMapping("/updatePlayerInfo")
-	public ResponseEntity<?> updatePlayerInfo(@RequestBody Player newPlayerInfo) {
+	@PutMapping("/updateSuggestedQuestion")
+	public ResponseEntity<?> updateSuggestedQuestion(@RequestBody SuggestedQuestion sQuestion) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
-			newPlayerInfo.setId(user.getUserId());
-			if (validationCheck(newPlayerInfo)) {
-				restTemplate.put(BASE_QUIZ_URL + "/updatePlayerInfo", newPlayerInfo);
-				return ResponseEntity.status(HttpStatus.OK).body("GOOD");
-				// need to check how to know if put work or not!
-			} else {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+			sQuestion.setPlayerId(user.getUserId());
+			try {
+				restTemplate.put(BASE_QUIZ_URL + "/updateSuggestedQuestion", sQuestion);
+				return ResponseEntity.status(HttpStatus.OK).body("Suggested question updated");
+			} catch (Exception e) {
+				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Only the player who suggested the question can update it");
+				}else if(e.getMessage().startsWith(""+HttpStatus.GATEWAY_TIMEOUT)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Suggested question does not exists");
+				}else {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Something went wrong please try again later");
+				}
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
@@ -193,7 +215,7 @@ public class PlayerController {
 	public ResponseEntity<?> suggestQuestion(@RequestBody Question question) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
-			if (validationCheck(question)) {
+			if (question != null) {
 				responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/suggestQuestion" + "/" + user.getUserId(),
 						question, String.class);
 				if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
@@ -241,7 +263,7 @@ public class PlayerController {
 			} else {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
 			}
-		}else {
+		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 		}
 	}
@@ -257,38 +279,6 @@ public class PlayerController {
 			res.sendRedirect(BASE_QUIZ_WEB_URL);
 		} catch (IOException e) {
 			System.out.println("error in relog redirect");
-		}
-	}
-
-	private boolean validationCheck(Object obj) {
-		if (obj != null) {
-			if (obj instanceof Quiz) {
-				Quiz quiz = (Quiz) obj;
-				return true; // need to fix later!!!
-			} else if (obj instanceof Player) {
-				Player player = (Player) obj;
-				if (player.getAge() < 0 || player.getAge() > 125 || player.getFirstName() == null
-						|| player.getFirstName().length() < 1 || player.getLastName() == null
-						|| player.getLastName().length() < 1) {
-					return false;
-				} else {
-					return true;
-				}
-			} else if (obj instanceof Question) {
-				Question question = (Question) obj;
-				if (question.getAnswers() == null || question.getCorrectAnswerId() < 1
-						|| question.getQuestionText().length() < 1) {
-					return false;
-				} else if ((question.getAnswers().stream().filter(q -> q.getAnswerText().length() < 1).count()) > 0) {
-					return false;
-				} else {
-					return true;
-				}
-			} else {
-				return false;
-			}
-		} else {
-			return false;
 		}
 	}
 

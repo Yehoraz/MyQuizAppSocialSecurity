@@ -62,7 +62,7 @@ public class QuizManagerController {
 			}
 			return ResponseEntity.status(HttpStatus.OK).body("Quiz started");
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
 
@@ -83,7 +83,7 @@ public class QuizManagerController {
 			userRepository.save(user);
 			return ResponseEntity.status(HttpStatus.OK).body("Quiz stoped");
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
 
@@ -112,7 +112,7 @@ public class QuizManagerController {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Player does not exist!");
 			}
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
 
@@ -133,7 +133,7 @@ public class QuizManagerController {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
 
@@ -154,7 +154,7 @@ public class QuizManagerController {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
 
@@ -167,10 +167,20 @@ public class QuizManagerController {
 						BASE_QUIZ_URL + "/removeQuestion" + "/" + quizId + "/" + questionId + "/" + user.getUserId());
 				return ResponseEntity.status(HttpStatus.OK).body("Question removed");
 			} catch (Exception e) {
-				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
+				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz does not exists");
+				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You are not the Quiz manager");
+				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question does not exists");
+				} else if (e.getMessage().startsWith("" + HttpStatus.HTTP_VERSION_NOT_SUPPORTED)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question does not belog to this Quiz");
+				} else {
+					return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
+				}
 			}
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
 
@@ -189,7 +199,7 @@ public class QuizManagerController {
 				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
 			}
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
 

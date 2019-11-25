@@ -103,6 +103,13 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 					user.getSocialTypeAndId().put(LoginType.google.name(), (String) details.get("id"));
 				}
 				user.setPictureURL((String) details.get("picture"));
+				if(user.getFirstName().equalsIgnoreCase((String) details.get("given_name")) || user.getLastName().equalsIgnoreCase((String) details.get("family_name"))) {
+					user.setFirstName((String) details.get("given_name"));
+					user.setLastName((String) details.get("family_name"));
+					player.setFirstName(user.getFirstName());
+					player.setLastName(user.getLastName());
+					restTemplate.put(BASE_QUIZ_URL + "/updatePlayer", player);
+				}
 			}
 		} else if (path.equalsIgnoreCase("/login/facebook")) {
 			Facebook facebook = new FacebookTemplate(token);
@@ -158,6 +165,13 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 					user.setPictureURL(picURL);
 				} else {
 					user.setPictureURL("defalut pic URL");
+				}
+				if(user.getFirstName().equalsIgnoreCase((String) fProfile2.getFirstName()) || user.getLastName().equalsIgnoreCase((String) fProfile2.getLastName())) {
+					user.setFirstName((String) fProfile2.getFirstName());
+					user.setLastName((String) fProfile2.getLastName());
+					player.setFirstName(user.getFirstName());
+					player.setLastName(user.getLastName());
+					restTemplate.put(BASE_QUIZ_URL + "/updatePlayer", player);
 				}
 			}
 		} else {
