@@ -2,7 +2,6 @@ package com.MyQuizAppSocialSecurity.rest;
 
 import java.io.IOException;
 import java.sql.Date;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -22,13 +21,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import com.MyQuizAppSocialSecurity.beans.Answer;
-import com.MyQuizAppSocialSecurity.beans.Player;
 import com.MyQuizAppSocialSecurity.beans.Question;
 import com.MyQuizAppSocialSecurity.beans.Quiz;
 import com.MyQuizAppSocialSecurity.beans.QuizPlayerAnswers;
 import com.MyQuizAppSocialSecurity.beans.SuggestedQuestion;
-import com.MyQuizAppSocialSecurity.enums.QuizType;
 import com.MyQuizAppSocialSecurity.enums.Roles;
 import com.MyQuizAppSocialSecurity.securityBeans.User;
 import com.MyQuizAppSocialSecurity.securityBeans.UserRepository;
@@ -64,50 +60,6 @@ public class PlayerController {
 	private void setProperties() {
 		BASE_QUIZ_URL = env.getProperty("url.baseQuizURL");
 		BASE_QUIZ_WEB_URL = env.getProperty("url.baseQuizWebURL");
-	}
-
-	@GetMapping("/check3")
-	public void check3() {
-		try {
-			restTemplate.put(BASE_QUIZ_URL + "/helloCheck", null);
-		} catch (Exception e) {
-			System.out.println(e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value()));
-			System.out.println(e.getMessage());
-		}
-	}
-
-	@GetMapping("/check2")
-	public String check2() {
-		Answer answer = new Answer(0, "a", false);
-		Answer answer1 = new Answer(0, "b", false);
-		Answer answer2 = new Answer(0, "c", true);
-		Answer answer3 = new Answer(0, "d", false);
-		List<Answer> answers = new ArrayList<Answer>();
-		answers.add(answer);
-		answers.add(answer1);
-		answers.add(answer2);
-		answers.add(answer3);
-		Question question = new Question(0, "what is it?", 0, false, answers);
-		Question question1 = new Question(0, "what is it1?", 0, false, answers);
-		Question question2 = new Question(0, "what is it2?", 0, false, answers);
-		Question question3 = new Question(0, "what is it3?", 0, false, answers);
-		Question question4 = new Question(0, "what is it4?", 0, false, answers);
-		Question question5 = new Question(0, "what is it5?", 0, false, answers);
-		Question question6 = new Question(0, "what is it6?", 0, false, answers);
-		List<Question> questions = new ArrayList<Question>();
-		questions.add(question);
-		questions.add(question1);
-		questions.add(question2);
-		questions.add(question3);
-		questions.add(question4);
-		questions.add(question5);
-		questions.add(question6);
-		Player player = new Player(123, "dodo", "dada", (byte) 20);
-		Quiz quiz = new Quiz(0, "my quiz", 123, QuizType.american, null, 0, new Date(System.currentTimeMillis()), null,
-				null, 1000000000, false, questions, new ArrayList<Player>(), new ArrayList<QuizPlayerAnswers>());
-		responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/createQuiz", quiz, String.class);
-		System.out.println(responseEntity);
-		return "yay";
 	}
 
 	@PostMapping("/createQuiz")
@@ -153,32 +105,53 @@ public class PlayerController {
 		}
 	}
 
-	@PostMapping("/join/{quizId}")
+	@PutMapping("/join/{quizId}")
 	public ResponseEntity<?> joinQuiz(@PathVariable long quizId) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
-			responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/join" + "/" + quizId + "/" + user.getUserId(),
-					null, String.class);
-			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
-				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+			try {
+				restTemplate.put(BASE_QUIZ_URL + "/join" + "/" + quizId + "/" + user.getUserId(), null);
+				return ResponseEntity.status(HttpStatus.OK).body("You joined the quiz");
+			} catch (Exception e) {
+				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz does not exists");
+				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Quiz is private, only the Quiz manager can add you");
+				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Player does not exists");
+				} else if (e.getMessage().startsWith("" + HttpStatus.SERVICE_UNAVAILABLE)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Can not join an ended quiz");
+				} else {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Something went wrong please try again later");
+				}
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
 		}
 	}
 
-	@PostMapping("/leave/{quizId}")
+	@PutMapping("/leave/{quizId}")
 	public ResponseEntity<?> leaveQuiz(@PathVariable long quizId) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
-			responseEntity = restTemplate.postForEntity(
-					BASE_QUIZ_URL + "/leave" + "/" + quizId + "/" + user.getUserId(), null, String.class);
-			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
-				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+			try {
+				restTemplate.put(BASE_QUIZ_URL + "/leave" + "/" + quizId + "/" + user.getUserId(), null);
+				return ResponseEntity.status(HttpStatus.OK).body("You left the quiz");
+			} catch (Exception e) {
+				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz does not exists");
+				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You dont belong to this Quiz");
+				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Player does not exists");
+				} else if (e.getMessage().startsWith("" + HttpStatus.SERVICE_UNAVAILABLE)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You left the Quiz with score 0");
+				} else {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Something went wrong please try again later");
+				}
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
@@ -199,9 +172,9 @@ public class PlayerController {
 				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Only the player who suggested the question can update it");
-				}else if(e.getMessage().startsWith(""+HttpStatus.GATEWAY_TIMEOUT)) {
+				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Suggested question does not exists");
-				}else {
+				} else {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Something went wrong please try again later");
 				}
