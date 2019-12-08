@@ -23,6 +23,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.MyQuizAppSocialSecurity.beans.Question;
 import com.MyQuizAppSocialSecurity.beans.Quiz;
+import com.MyQuizAppSocialSecurity.beans.QuizInfo;
 import com.MyQuizAppSocialSecurity.beans.QuizPlayerAnswers;
 import com.MyQuizAppSocialSecurity.beans.SuggestedQuestion;
 import com.MyQuizAppSocialSecurity.enums.Roles;
@@ -80,8 +81,9 @@ public class PlayerController {
 				user.removeRole(Roles.PLAYER);
 				userRepository.save(user);
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
 			}
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
 		}
@@ -98,8 +100,28 @@ public class PlayerController {
 					String.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
 			}
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+		}
+	}
+
+	@PostMapping("/suggestQuestion")
+	public ResponseEntity<?> suggestQuestion(@RequestBody Question question) {
+		user = UserUtil.getUser(userRepository, clientContext);
+		if (user != null) {
+			responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/suggestQuestion" + "/" + user.getUserId(),
+					question, String.class);
+			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
+			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
 		}
@@ -114,14 +136,14 @@ public class PlayerController {
 				return ResponseEntity.status(HttpStatus.OK).body("You joined the quiz");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz does not exists");
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
 				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Quiz is private, only the Quiz manager can add you");
 				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Player does not exists");
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Player don't exists");
 				} else if (e.getMessage().startsWith("" + HttpStatus.SERVICE_UNAVAILABLE)) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Can not join an ended quiz");
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Can't join an ended quiz");
 				} else {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Something went wrong please try again later");
@@ -141,38 +163,15 @@ public class PlayerController {
 				return ResponseEntity.status(HttpStatus.OK).body("You left the quiz");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz does not exists");
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
 				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You dont belong to this Quiz");
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You don't belong to this Quiz");
 				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Player does not exists");
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Player don't exists");
 				} else {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Something went wrong please try again later");
 				}
-			}
-		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
-		}
-	}
-	
-	@PostMapping("/suggestQuestion")
-	public ResponseEntity<?> suggestQuestion(@RequestBody Question question) {
-		user = UserUtil.getUser(userRepository, clientContext);
-		if (user != null) {
-			// need to check if REST can even get null as a body input, probably not so this check should be deleted
-			if (question != null) {
-				responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/suggestQuestion" + "/" + user.getUserId(),
-						question, String.class);
-				if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
-					return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-				}else if(responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
-				}else {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong");
-				}
-			} else {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
@@ -183,9 +182,8 @@ public class PlayerController {
 	public ResponseEntity<?> updateSuggestedQuestion(@RequestBody SuggestedQuestion sQuestion) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
-			sQuestion.setPlayerId(user.getUserId());
 			try {
-				restTemplate.put(BASE_QUIZ_URL + "/updateSuggestedQuestion", sQuestion);
+				restTemplate.put(BASE_QUIZ_URL + "/updateSuggestedQuestion" + "/" + user.getUserId(), sQuestion);
 				return ResponseEntity.status(HttpStatus.OK).body("Suggested question updated");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
@@ -194,7 +192,7 @@ public class PlayerController {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Only the player who suggested the question can update it");
 				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Suggested question does not exists");
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Suggested question don't exists");
 				} else {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Something went wrong please try again later");
@@ -211,7 +209,7 @@ public class PlayerController {
 		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no Quizs");
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no approved questions");
 		}
 	}
 
@@ -221,7 +219,11 @@ public class PlayerController {
 		if (numberOfRandomQuestions > 0 && numberOfRandomQuestions < 1000) {
 			responseEntity = restTemplate
 					.getForEntity(BASE_QUIZ_URL + "/getRandomQuestions" + "/" + numberOfRandomQuestions, List.class);
-			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no approved questions");
+			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 		}
@@ -230,8 +232,7 @@ public class PlayerController {
 	@GetMapping("/getWinner/{quizId}")
 	public ResponseEntity<?> getQuizWinner(@PathVariable long quizId) {
 		if (quizId > 100000000000000000l) {
-			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getWinner" + "/" + quizId,
-					ResponseEntity.class);
+			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getWinner" + "/" + quizId, String.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
 			} else {
@@ -239,6 +240,36 @@ public class PlayerController {
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+		}
+	}
+
+	@GetMapping("/getQuizInfo/{quizId}")
+	public ResponseEntity<?> getQuizInfo(@PathVariable long quizId) {
+		if (quizId > 100000000000000000l) {
+			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getQuizInfo" + "/" + quizId, QuizInfo.class);
+			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz not exists or not finished yet");
+			}
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+		}
+	}
+
+	@GetMapping("/getAllPrevQuizs")
+	public ResponseEntity<?> getAllPrevQuizs() {
+		user = UserUtil.getUser(userRepository, clientContext);
+		if (user != null) {
+			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getAllPrevQuizs" + "/" + user.getUserId(),
+					List.class);
+			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You never managed any quiz");
+			}
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
 		}
 	}
 
