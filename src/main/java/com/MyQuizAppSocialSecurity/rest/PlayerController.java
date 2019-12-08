@@ -146,12 +146,33 @@ public class PlayerController {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You dont belong to this Quiz");
 				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Player does not exists");
-				} else if (e.getMessage().startsWith("" + HttpStatus.SERVICE_UNAVAILABLE)) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You left the Quiz with score 0");
 				} else {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Something went wrong please try again later");
 				}
+			}
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
+		}
+	}
+	
+	@PostMapping("/suggestQuestion")
+	public ResponseEntity<?> suggestQuestion(@RequestBody Question question) {
+		user = UserUtil.getUser(userRepository, clientContext);
+		if (user != null) {
+			// need to check if REST can even get null as a body input, probably not so this check should be deleted
+			if (question != null) {
+				responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/suggestQuestion" + "/" + user.getUserId(),
+						question, String.class);
+				if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+					return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+				}else if(responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+				}else {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong");
+				}
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
@@ -178,26 +199,6 @@ public class PlayerController {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Something went wrong please try again later");
 				}
-			}
-		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
-		}
-	}
-
-	@PostMapping("/suggestQuestion")
-	public ResponseEntity<?> suggestQuestion(@RequestBody Question question) {
-		user = UserUtil.getUser(userRepository, clientContext);
-		if (user != null) {
-			if (question != null) {
-				responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/suggestQuestion" + "/" + user.getUserId(),
-						question, String.class);
-				if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
-					return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-				} else {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong");
-				}
-			} else {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
