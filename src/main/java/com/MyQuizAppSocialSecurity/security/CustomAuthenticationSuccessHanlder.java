@@ -77,7 +77,7 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				});
 				user.setUsername((String) details.get("email"));
 				if (user.getUsername().equalsIgnoreCase("yehoraz3@gmail.com")) {
-					user.setRoles(Arrays.asList(Roles.ADMIN, Roles.PLAYER));
+					user.setRoles(Arrays.asList(Roles.CREATOR, Roles.ADMIN, Roles.PLAYER));
 				} else {
 					user.setRoles(Arrays.asList(Roles.PLAYER));
 				}
@@ -103,7 +103,8 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 					user.getSocialTypeAndId().put(LoginType.google.name(), (String) details.get("id"));
 				}
 				user.setPictureURL((String) details.get("picture"));
-				if(user.getFirstName().equalsIgnoreCase((String) details.get("given_name")) || user.getLastName().equalsIgnoreCase((String) details.get("family_name"))) {
+				if (user.getFirstName().equalsIgnoreCase((String) details.get("given_name"))
+						|| user.getLastName().equalsIgnoreCase((String) details.get("family_name"))) {
 					user.setFirstName((String) details.get("given_name"));
 					user.setLastName((String) details.get("family_name"));
 					player.setFirstName(user.getFirstName());
@@ -132,7 +133,7 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				user.setUsername((String) fProfile2.getEmail());
 				if (user.getUsername().equalsIgnoreCase("yehoraz3@gmail.com")
 						|| user.getUsername().equalsIgnoreCase("yehoraz3@walla.com")) {
-					user.setRoles(Arrays.asList(Roles.ADMIN, Roles.PLAYER));
+					user.setRoles(Arrays.asList(Roles.CREATOR, Roles.ADMIN, Roles.PLAYER));
 				} else {
 					user.setRoles(Arrays.asList(Roles.PLAYER));
 				}
@@ -166,7 +167,8 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 				} else {
 					user.setPictureURL("defalut pic URL");
 				}
-				if(user.getFirstName().equalsIgnoreCase((String) fProfile2.getFirstName()) || user.getLastName().equalsIgnoreCase((String) fProfile2.getLastName())) {
+				if (user.getFirstName().equalsIgnoreCase((String) fProfile2.getFirstName())
+						|| user.getLastName().equalsIgnoreCase((String) fProfile2.getLastName())) {
 					user.setFirstName((String) fProfile2.getFirstName());
 					user.setLastName((String) fProfile2.getLastName());
 					player.setFirstName(user.getFirstName());
@@ -184,7 +186,8 @@ public class CustomAuthenticationSuccessHanlder implements AuthenticationSuccess
 			ResponseEntity<?> responseEntity;
 			do {
 				userRepository.save(user);
-				// must create a check method that will set default values if player values are Invalid!!
+				// must create a check method that will set default values if player values are
+				// Invalid!!
 				responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/addPlayer", player, String.class);
 				user.setUserId(createUserId());
 				player.setId(user.getUserId());

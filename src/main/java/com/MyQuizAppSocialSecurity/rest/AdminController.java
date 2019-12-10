@@ -28,15 +28,6 @@ import com.MyQuizAppSocialSecurity.beans.SuggestedQuestion;
 @PropertySource(value = "classpath:info.properties")
 @Lazy
 public class AdminController {
-	// need to check what PUT request return ASAP!!!!!!!!
-	// need to check what PUT request return ASAP!!!!!!!!
-	// need to check what PUT request return ASAP!!!!!!!!
-	// need to check what PUT request return ASAP!!!!!!!!
-	// need to check what PUT request return ASAP!!!!!!!!
-	// need to check what PUT request return ASAP!!!!!!!!
-
-	private String BASE_QUIZ_ADMIN_URL;
-	private ResponseEntity<?> responseEntity;
 
 	@Autowired
 	private Environment env;
@@ -44,39 +35,46 @@ public class AdminController {
 	@Autowired
 	private RestTemplate restTemplate;
 
+	private String BASE_QUIZ_ADMIN_URL;
+	private ResponseEntity<?> responseEntity;
+
 	@PostConstruct
 	private void setProperties() {
 		BASE_QUIZ_ADMIN_URL = env.getProperty("baseQuizAdminURL");
 	}
 
+	// Questions!!!!!
+
 	@PostMapping("/addQuestion")
 	public ResponseEntity<?> addQuestion(@RequestBody Question question) {
 		restartValues();
-		if (question != null) {
-			responseEntity = restTemplate.postForEntity(BASE_QUIZ_ADMIN_URL + "/addQuestion", question, String.class);
-			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
-				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
-			}
+		responseEntity = restTemplate.postForEntity(BASE_QUIZ_ADMIN_URL + "/addQuestion", question, String.class);
+		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+		} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong please try again later");
 		}
 	}
 
 	@PutMapping("/updateQuestion")
 	public ResponseEntity<?> updateQuestion(@RequestBody Question question) {
 		restartValues();
-		if (question != null) {
-			try {
-				restTemplate.put(BASE_QUIZ_ADMIN_URL + "/updateQuestion", question);
-				return ResponseEntity.status(HttpStatus.OK).body("Question updated");
-			} catch (Exception e) {
-				// need to check what PUT request return ASAP!!!!!!!!
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+		try {
+			restTemplate.put(BASE_QUIZ_ADMIN_URL + "/updateQuestion", question);
+			return ResponseEntity.status(HttpStatus.OK).body("Question updated");
+		} catch (Exception e) {
+			if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid question input");
+			} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question with this text already exists");
+			} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question with this id don't exists");
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
 			}
-		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 		}
 	}
 
@@ -85,41 +83,61 @@ public class AdminController {
 		restartValues();
 		if (questionId >= 0) {
 			try {
-				restTemplate.delete(BASE_QUIZ_ADMIN_URL + "/updateQuestion" + "/" + questionId);
+				restTemplate.delete(BASE_QUIZ_ADMIN_URL + "/removeQuestion" + "/" + questionId);
 				return ResponseEntity.status(HttpStatus.OK).body("Question removed");
 			} catch (Exception e) {
-				// need to check what DELETE request return ASAP!!!!!!!!
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+				if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT.value())) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question with this id don't exists");
+				} else {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Something went wrong please try again later");
+				}
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 		}
 	}
 
-	@GetMapping("/getSuggestedQuestions")
-	public ResponseEntity<?> getAllSuggestedQuestions() {
+	@GetMapping("/getQuestion/{questionId}")
+	public ResponseEntity<?> getQuestion(@PathVariable long questionId) {
 		restartValues();
-		responseEntity = restTemplate.getForEntity(BASE_QUIZ_ADMIN_URL + "/getSuggestedQuestions", List.class);
+		responseEntity = restTemplate.getForEntity(BASE_QUIZ_ADMIN_URL + "/getQuestion" + "/" + questionId,
+				Question.class);
 		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+		} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question with this id don't exists");
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no suggested questions");
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong please try again later");
 		}
 	}
 
-	@PostMapping("/addSuggestedQuestion")
-	public ResponseEntity<?> addSuggestedQuestion(SuggestedQuestion suggestedQuestion) {
+	@GetMapping("/getAllQuestions")
+	public ResponseEntity<?> getAllQuestions() {
 		restartValues();
-		if (suggestedQuestion != null) {
-			responseEntity = restTemplate.postForEntity(BASE_QUIZ_ADMIN_URL + "/addSuggestedQuestion",
-					suggestedQuestion, String.class);
-			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
-				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
-			}
+		responseEntity = restTemplate.getForEntity(BASE_QUIZ_ADMIN_URL + "/getAllQuestions", List.class);
+		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+		} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no questions");
 		} else {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong please try again later");
+		}
+	}
+
+	// Suggested!!!!!
+
+	@PostMapping("/addSuggestedQuestion")
+	public ResponseEntity<?> addSuggestedQuestion(@RequestBody SuggestedQuestion suggestedQuestion) {
+		restartValues();
+		responseEntity = restTemplate.postForEntity(BASE_QUIZ_ADMIN_URL + "/addSuggestedQuestion", suggestedQuestion,
+				String.class);
+		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+		} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong please try again later");
 		}
 	}
 
@@ -130,12 +148,13 @@ public class AdminController {
 				ResponseEntity.class);
 		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-		} else {
+		} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong please try again later");
 		}
 	}
 
-	// need to check how i can return a response here!!!
 	@DeleteMapping("/deleteSuggestedQuestion/{sqID}")
 	public ResponseEntity<?> deleteSuggestedQuestion(@PathVariable("sqID") long suggestedQuestionID) {
 		restartValues();
@@ -144,14 +163,19 @@ public class AdminController {
 				restTemplate.delete(BASE_QUIZ_ADMIN_URL + "/deleteSuggestedQuestion" + "/" + suggestedQuestionID);
 				return ResponseEntity.status(HttpStatus.OK).body("Suggested questio deleted");
 			} catch (Exception e) {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+				if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT.value())) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Suggested question with this id don't exists");
+				} else {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Something went wrong please try again later");
+				}
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 		}
 	}
 
-	// need to check how i can return a response here!!!
 	@DeleteMapping("/deleteAllSuggestedQuestions")
 	public ResponseEntity<?> deleteAllSuggestedQuestions() {
 		restartValues();
@@ -159,8 +183,40 @@ public class AdminController {
 			restTemplate.delete(BASE_QUIZ_ADMIN_URL + "/deleteAllSuggestedQuestions");
 			return ResponseEntity.status(HttpStatus.OK).body("All suggested questions deleted");
 		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-		}		
+			if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT.value())) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no suggested questions");
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
+			}
+		}
+	}
+
+	@GetMapping("/getSuggestedQuestion/{sQuestionId}")
+	public ResponseEntity<?> getSuggestedQuestion(@PathVariable long sQuestionId) {
+		restartValues();
+		responseEntity = restTemplate.getForEntity(BASE_QUIZ_ADMIN_URL + "/getSuggestedQuestion" + "/" + sQuestionId,
+				SuggestedQuestion.class);
+		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+		} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Suggested question with this id don't exists");
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong please try again later");
+		}
+	}
+
+	@GetMapping("/getAllSuggestedQuestions")
+	public ResponseEntity<?> getAllSuggestedQuestions() {
+		restartValues();
+		responseEntity = restTemplate.getForEntity(BASE_QUIZ_ADMIN_URL + "/getAllSuggestedQuestions", List.class);
+		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+		} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no suggested questions");
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong please try again later");
+		}
 	}
 
 	private void restartValues() {

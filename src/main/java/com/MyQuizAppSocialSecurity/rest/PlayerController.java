@@ -81,8 +81,11 @@ public class PlayerController {
 				user.removeRole(Roles.PLAYER);
 				userRepository.save(user);
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
@@ -100,8 +103,11 @@ public class PlayerController {
 					String.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
@@ -208,8 +214,10 @@ public class PlayerController {
 		responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getAllQuestions", List.class);
 		if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 			return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-		} else {
+		} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no approved questions");
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Something went wrong please try again later");
 		}
 	}
 
@@ -221,8 +229,11 @@ public class PlayerController {
 					.getForEntity(BASE_QUIZ_URL + "/getRandomQuestions" + "/" + numberOfRandomQuestions, List.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no approved questions");
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
@@ -235,8 +246,11 @@ public class PlayerController {
 			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getWinner" + "/" + quizId, String.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
@@ -249,8 +263,11 @@ public class PlayerController {
 			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getQuizInfo" + "/" + quizId, QuizInfo.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz not exists or not finished yet");
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
@@ -265,8 +282,11 @@ public class PlayerController {
 					List.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
-			} else {
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You never managed any quiz");
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");

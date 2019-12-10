@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import com.MyQuizAppSocialSecurity.beans.Question;
+import com.MyQuizAppSocialSecurity.beans.Quiz;
 import com.MyQuizAppSocialSecurity.enums.Roles;
 import com.MyQuizAppSocialSecurity.securityBeans.User;
 import com.MyQuizAppSocialSecurity.securityBeans.UserRepository;
@@ -216,35 +217,36 @@ public class QuizManagerController {
 	}
 
 	@PutMapping("/addQuestionToQuiz")
-	public ResponseEntity<?> addQuestionToQuiz(@RequestBody Question question){
+	public ResponseEntity<?> addQuestionToQuiz(@RequestBody Question question) {
 		user = UserUtil.getUser(userRepository, clientContext);
-		if(user != null) {
+		if (user != null) {
 			try {
 				question.setApproved(false);
 				restTemplate.put(BASE_QUIZ_URL + "/addQuestionToQuiz" + "/" + user.getUserId(), question);
 				return ResponseEntity.status(HttpStatus.OK).body("Question added");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists or you are not the quiz manager");
-				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-							.body("Invalid question input");
+							.body("Quiz don't exists or you are not the quiz manager");
+				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid question input");
 				} else {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Something went wrong please try again later");
 				}
 			}
-		}else {
+		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
-	
+
 	@DeleteMapping("/removeQuestion/{quizId}/{questionId}")
 	public ResponseEntity<?> removeQuestion(@PathVariable long quizId, @PathVariable int questionId) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
 			try {
-				restTemplate.delete(BASE_QUIZ_URL + "/removeQuestion" + "/" + quizId + "/" + questionId + "/" + user.getUserId());
+				restTemplate.delete(
+						BASE_QUIZ_URL + "/removeQuestion" + "/" + quizId + "/" + questionId + "/" + user.getUserId());
 				return ResponseEntity.status(HttpStatus.OK).body("Question removed");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST)) {
@@ -256,7 +258,8 @@ public class QuizManagerController {
 				} else if (e.getMessage().startsWith("" + HttpStatus.HTTP_VERSION_NOT_SUPPORTED)) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question don't belog to this quiz");
 				} else {
-					return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong please try again later");
+					return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+							.body("Something went wrong please try again later");
 				}
 			}
 		} else {
@@ -264,7 +267,7 @@ public class QuizManagerController {
 		}
 	}
 
-	//need to fix it in the main project first
+	// need to fix it in the main project first
 	@DeleteMapping("/removeQuiz/{quizId}")
 	public ResponseEntity<?> removeQuiz(@PathVariable long quizId) {
 		user = UserUtil.getUser(userRepository, clientContext);
@@ -277,13 +280,30 @@ public class QuizManagerController {
 				user.removeRole(Roles.MANAGER);
 				return ResponseEntity.status(HttpStatus.OK).body("Quiz removed");
 			} catch (Exception e) {
-				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong please try again later");
+				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+						.body("Something went wrong please try again later");
 			}
 		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
-	
-	//need to add the GET REST methods here!!!! ASAP!
+
+	@GetMapping("/getQuiz")
+	public ResponseEntity<?> getQuiz() {
+		user = UserUtil.getUser(userRepository, clientContext);
+		if (user != null) {
+			responseEntity = restTemplate.getForEntity(BASE_QUIZ_URL + "/getQuiz" + "/" + user.getUserId(), Quiz.class);
+			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
+				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You don't manage a quiz");
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Something went wrong please try again later");
+			}
+		} else {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
+		}
+	}
 
 }
