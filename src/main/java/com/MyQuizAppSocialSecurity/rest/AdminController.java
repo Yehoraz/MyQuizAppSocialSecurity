@@ -63,7 +63,6 @@ public class AdminController {
 		restartValues();
 		try {
 			restTemplate.put(BASE_QUIZ_ADMIN_URL + "/updateQuestion", question);
-			return ResponseEntity.status(HttpStatus.OK).body("Question updated");
 		} catch (Exception e) {
 			if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid question input");
@@ -76,6 +75,7 @@ public class AdminController {
 						.body("Something went wrong please try again later");
 			}
 		}
+		return ResponseEntity.status(HttpStatus.OK).body("Question updated");
 	}
 
 	@DeleteMapping("/removeQuestion/{questionId}")
@@ -84,7 +84,6 @@ public class AdminController {
 		if (questionId >= 0) {
 			try {
 				restTemplate.delete(BASE_QUIZ_ADMIN_URL + "/removeQuestion" + "/" + questionId);
-				return ResponseEntity.status(HttpStatus.OK).body("Question removed");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT.value())) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question with this id don't exists");
@@ -93,6 +92,7 @@ public class AdminController {
 							.body("Something went wrong please try again later");
 				}
 			}
+			return ResponseEntity.status(HttpStatus.OK).body("Question removed");
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 		}
@@ -161,7 +161,6 @@ public class AdminController {
 		if (suggestedQuestionID > 0) {
 			try {
 				restTemplate.delete(BASE_QUIZ_ADMIN_URL + "/deleteSuggestedQuestion" + "/" + suggestedQuestionID);
-				return ResponseEntity.status(HttpStatus.OK).body("Suggested questio deleted");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT.value())) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -171,6 +170,7 @@ public class AdminController {
 							.body("Something went wrong please try again later");
 				}
 			}
+			return ResponseEntity.status(HttpStatus.OK).body("Suggested questio deleted");
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 		}
@@ -181,7 +181,6 @@ public class AdminController {
 		restartValues();
 		try {
 			restTemplate.delete(BASE_QUIZ_ADMIN_URL + "/deleteAllSuggestedQuestions");
-			return ResponseEntity.status(HttpStatus.OK).body("All suggested questions deleted");
 		} catch (Exception e) {
 			if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT.value())) {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("There are no suggested questions");
@@ -190,6 +189,7 @@ public class AdminController {
 						.body("Something went wrong please try again later");
 			}
 		}
+		return ResponseEntity.status(HttpStatus.OK).body("All suggested questions deleted");
 	}
 
 	@GetMapping("/getSuggestedQuestion/{sQuestionId}")

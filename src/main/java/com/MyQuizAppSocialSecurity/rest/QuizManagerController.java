@@ -59,7 +59,6 @@ public class QuizManagerController {
 			try {
 				restTemplate.put(BASE_QUIZ_URL + "/startQuiz" + "/" + quizId + "/" + System.currentTimeMillis() + "/"
 						+ user.getUserId(), null);
-				return ResponseEntity.status(HttpStatus.OK).body("Quiz started");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
@@ -73,6 +72,7 @@ public class QuizManagerController {
 							.body("Something went wrong please try again later");
 				}
 			}
+			return ResponseEntity.status(HttpStatus.OK).body("Quiz started");
 		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
@@ -157,7 +157,6 @@ public class QuizManagerController {
 				try {
 					restTemplate.put(BASE_QUIZ_URL + "/updateAnswer" + "/" + quizId + "/" + questionId + "/" + answerId
 							+ "/" + user.getUserId(), answerText);
-					return ResponseEntity.status(HttpStatus.OK).body("Answer updated");
 				} catch (Exception e) {
 					if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
 						return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
@@ -175,6 +174,7 @@ public class QuizManagerController {
 								.body("Something went wrong please try again later");
 					}
 				}
+				return ResponseEntity.status(HttpStatus.OK).body("Answer updated");
 			} else {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
@@ -192,7 +192,6 @@ public class QuizManagerController {
 				try {
 					restTemplate.put(BASE_QUIZ_URL + "/updateQuestion" + "/" + quizId + "/" + questionId + "/"
 							+ user.getUserId(), questionText);
-					return ResponseEntity.status(HttpStatus.OK).body("Question updated");
 				} catch (Exception e) {
 					if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
 						return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
@@ -208,6 +207,7 @@ public class QuizManagerController {
 								.body("Something went wrong please try again later");
 					}
 				}
+				return ResponseEntity.status(HttpStatus.OK).body("Question updated");
 			} else {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			}
@@ -220,10 +220,9 @@ public class QuizManagerController {
 	public ResponseEntity<?> addQuestionToQuiz(@RequestBody Question question) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
+			question.setApproved(false);
 			try {
-				question.setApproved(false);
 				restTemplate.put(BASE_QUIZ_URL + "/addQuestionToQuiz" + "/" + user.getUserId(), question);
-				return ResponseEntity.status(HttpStatus.OK).body("Question added");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -235,6 +234,7 @@ public class QuizManagerController {
 							.body("Something went wrong please try again later");
 				}
 			}
+			return ResponseEntity.status(HttpStatus.OK).body("Question added");
 		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
@@ -247,7 +247,6 @@ public class QuizManagerController {
 			try {
 				restTemplate.delete(
 						BASE_QUIZ_URL + "/removeQuestion" + "/" + quizId + "/" + questionId + "/" + user.getUserId());
-				return ResponseEntity.status(HttpStatus.OK).body("Question removed");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST)) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
@@ -258,31 +257,39 @@ public class QuizManagerController {
 				} else if (e.getMessage().startsWith("" + HttpStatus.HTTP_VERSION_NOT_SUPPORTED)) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Question don't belog to this quiz");
 				} else {
-					return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 							.body("Something went wrong please try again later");
 				}
 			}
+			return ResponseEntity.status(HttpStatus.OK).body("Question removed");
 		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}
 	}
 
-	// need to fix it in the main project first
 	@DeleteMapping("/removeQuiz/{quizId}")
 	public ResponseEntity<?> removeQuiz(@PathVariable long quizId) {
 		user = UserUtil.getUser(userRepository, clientContext);
 		if (user != null) {
 			try {
 				restTemplate.delete(BASE_QUIZ_URL + "/removeQuiz" + "/" + quizId + "/" + user.getUserId());
-				if (!user.getRoles().contains(Roles.PLAYER)) {
-					user.addRole(Roles.PLAYER);
-				}
-				user.removeRole(Roles.MANAGER);
-				return ResponseEntity.status(HttpStatus.OK).body("Quiz removed");
 			} catch (Exception e) {
-				return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
-						.body("Something went wrong please try again later");
+				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
+				} else if (e.getMessage().startsWith("" + HttpStatus.BAD_GATEWAY)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("You are not this quiz manager");
+				} else if (e.getMessage().startsWith("" + HttpStatus.GATEWAY_TIMEOUT)) {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Can't remove an ongoing quiz");
+				} else {
+					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+							.body("Something went wrong please try again later");
+				}
 			}
+			if (!user.getRoles().contains(Roles.PLAYER)) {
+				user.addRole(Roles.PLAYER);
+			}
+			user.removeRole(Roles.MANAGER);
+			return ResponseEntity.status(HttpStatus.OK).body("Quiz removed");
 		} else {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not allowed");
 		}

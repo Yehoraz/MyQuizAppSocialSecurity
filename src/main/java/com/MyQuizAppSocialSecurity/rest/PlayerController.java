@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
@@ -73,7 +74,7 @@ public class PlayerController {
 			quiz.setQuizStartDate(null);
 			quiz.setWinnerPlayer(null);
 			quiz.setWinnerPlayerScore(0);
-			responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/createQuiz", quiz, String.class);
+			responseEntity = restTemplate.postForEntity(BASE_QUIZ_URL + "/createQuiz", quiz, Quiz.class);
 			if (responseEntity.getStatusCodeValue() == HttpStatus.OK.value()) {
 				if (!user.getRoles().contains(Roles.MANAGER)) {
 					user.addRole(Roles.MANAGER);
@@ -82,7 +83,10 @@ public class PlayerController {
 				userRepository.save(user);
 				return ResponseEntity.status(HttpStatus.OK).body(responseEntity.getBody());
 			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ACCEPTED.value()) {
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseEntity.getBody());
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("You can not have more than one Quiz open at the same time");
+			} else if (responseEntity.getStatusCodeValue() == HttpStatus.ALREADY_REPORTED.value()) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
 			} else {
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 						.body("Something went wrong please try again later");
@@ -139,7 +143,6 @@ public class PlayerController {
 		if (user != null) {
 			try {
 				restTemplate.put(BASE_QUIZ_URL + "/join" + "/" + quizId + "/" + user.getUserId(), null);
-				return ResponseEntity.status(HttpStatus.OK).body("You joined the quiz");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
@@ -155,6 +158,7 @@ public class PlayerController {
 							.body("Something went wrong please try again later");
 				}
 			}
+			return ResponseEntity.status(HttpStatus.OK).body("You joined the quiz");
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
 		}
@@ -166,7 +170,6 @@ public class PlayerController {
 		if (user != null) {
 			try {
 				restTemplate.put(BASE_QUIZ_URL + "/leave" + "/" + quizId + "/" + user.getUserId(), null);
-				return ResponseEntity.status(HttpStatus.OK).body("You left the quiz");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Quiz don't exists");
@@ -179,6 +182,7 @@ public class PlayerController {
 							.body("Something went wrong please try again later");
 				}
 			}
+			return ResponseEntity.status(HttpStatus.OK).body("You left the quiz");
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
 		}
@@ -190,7 +194,6 @@ public class PlayerController {
 		if (user != null) {
 			try {
 				restTemplate.put(BASE_QUIZ_URL + "/updateSuggestedQuestion" + "/" + user.getUserId(), sQuestion);
-				return ResponseEntity.status(HttpStatus.OK).body("Suggested question updated");
 			} catch (Exception e) {
 				if (e.getMessage().startsWith("" + HttpStatus.BAD_REQUEST.value())) {
 					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid input");
@@ -204,6 +207,7 @@ public class PlayerController {
 							.body("Something went wrong please try again later");
 				}
 			}
+			return ResponseEntity.status(HttpStatus.OK).body("Suggested question updated");
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Not allowed");
 		}
